@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://oathhhhhhh.github.io</id>
+    <title>Lipe</title>
+    <updated>2024-11-30T07:46:33.876Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://oathhhhhhh.github.io"/>
+    <link rel="self" href="https://oathhhhhhh.github.io/atom.xml"/>
+    <subtitle>大道至简，知易行难</subtitle>
+    <logo>https://oathhhhhhh.github.io/images/avatar.png</logo>
+    <icon>https://oathhhhhhh.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2024, Lipe</rights>
+    <entry>
+        <title type="html"><![CDATA[关于中台物流系统设计的简单思考]]></title>
+        <id>https://oathhhhhhh.github.io/post/guan-yu-mai-fang-gong-ying-lian-xi-tong-she-ji/</id>
+        <link href="https://oathhhhhhh.github.io/post/guan-yu-mai-fang-gong-ying-lian-xi-tong-she-ji/">
+        </link>
+        <updated>2024-11-24T06:45:13.000Z</updated>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[一次导出服务频繁GC问题排查与分析]]></title>
+        <id>https://oathhhhhhh.github.io/post/dao-chu-fu-wu-pin-fan-gc-wen-ti-pai-cha-yu-fen-xi/</id>
+        <link href="https://oathhhhhhh.github.io/post/dao-chu-fu-wu-pin-fan-gc-wen-ti-pai-cha-yu-fen-xi/">
+        </link>
+        <updated>2024-11-13T11:55:03.000Z</updated>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[一次因修改Druid配置导致应用重启问题记录]]></title>
+        <id>https://oathhhhhhh.github.io/post/yi-ci-yin-xiu-gai-chu-shi-hua-lian-jie-dao-zhi-ying-yong-chong-qi-de-yuan-yin-fen-xi/</id>
+        <link href="https://oathhhhhhh.github.io/post/yi-ci-yin-xiu-gai-chu-shi-hua-lian-jie-dao-zhi-ying-yong-chong-qi-de-yuan-yin-fen-xi/">
+        </link>
+        <updated>2024-10-19T07:18:19.000Z</updated>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Elasticsearch 映射]]></title>
+        <id>https://oathhhhhhh.github.io/post/elasticsearch-ying-she/</id>
+        <link href="https://oathhhhhhh.github.io/post/elasticsearch-ying-she/">
+        </link>
+        <updated>2024-10-01T12:52:43.000Z</updated>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[关于]]></title>
+        <id>https://oathhhhhhh.github.io/post/test/</id>
+        <link href="https://oathhhhhhh.github.io/post/test/">
+        </link>
+        <updated>2024-10-01T07:01:06.000Z</updated>
+    </entry>
+</feed>

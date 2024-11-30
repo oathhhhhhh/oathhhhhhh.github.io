@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>一次因修改Druid配置导致应用重启问题记录 | Lipe</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://oathhhhhhh.github.io/favicon.ico?v=1732951901189">
+<link rel="stylesheet" href="https://oathhhhhhh.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="背景
+因收到运维同学反馈，现在业务线的数据库连接数过高，导致数据库压力较大，同时为了迎接即将到来的双十一，需要根据服务实际需要对连接数进行调整。配置调整好后，计划5个服务一组发布配置后，走运维平台重启工单，使配置生效。
+计划发布流程如下：
+..." />
+    <meta name="keywords" content="Druid" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://oathhhhhhh.github.io">
+        <img src="https://oathhhhhhh.github.io/images/avatar.png?v=1732951901189" class="site-logo">
+        <h1 class="site-title">Lipe</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="https://oathhhhhhh.github.io/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="https://oathhhhhhh.github.io/post/test" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      大道至简，知易行难
+    </div>
+    <div class="site-footer">
+      Produced By Lipe | <a class="rss" href="https://oathhhhhhh.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">一次因修改Druid配置导致应用重启问题记录</h2>
+            <div class="post-date">2024-10-19</div>
+            
+            <div class="post-content" v-pre>
+              <h3 id="背景">背景</h3>
+<p>因收到运维同学反馈，现在业务线的数据库连接数过高，导致数据库压力较大，同时为了迎接即将到来的双十一，需要根据服务实际需要对连接数进行调整。配置调整好后，计划5个服务一组发布配置后，走运维平台重启工单，使配置生效。<br>
+计划发布流程如下：<br>
+<img src="https://oathhhhhhh.github.io/post-images/1729326130281.png" alt="" loading="lazy"><br>
+但是在实际操作中，在新节点发布过程中，老节点健康检查失败出现重启，导致服务流量短暂跌零。<br>
+<img src="https://oathhhhhhh.github.io/post-images/1729327054904.png" alt="" loading="lazy"></p>
+<h3 id="原因分析">原因分析</h3>
+<p>简单来说，就是公司基础架构封装了对apollo配置变更的监听并更新配置，但是druid不允许在数据源已经初始化的情况下修改初始化连接大小，导致节点探活失败，触发运维平台重启应用。</p>
+<p>具体分析如下：<br>
+首先，公司自有组件将配置变更事件推送到Spring上下文中</p>
+<pre><code>public class XXXApolloConfigChangeListener implements ApplicationContextAware {
+    @PostConstruct
+    public void addChangeListener() {
+        String[] var1 = this.apolloNamespaces;
+        int var2 = var1.length;
+
+        for(int var3 = 0; var3 &lt; var2; ++var3) {
+            String namespace = var1[var3];
+            Config config = ConfigService.getConfig(namespace);
+            if (config != null) {
+                config.addChangeListener(this::handleChangeListener);
+            }
+        }
+
+    }
+
+    public void handleChangeListener(ConfigChangeEvent changeEvent) {
+        if (hasEnvironmentChangeEvent) {
+            this.applicationContext.publishEvent(new EnvironmentChangeEvent(changeEvent.changedKeys()));
+        } else {
+            this.configChangeService.handleConfigChangeKeys(changeEvent.changedKeys());
+        }
+    }
+}
+</code></pre>
+<p>发出apollo配置变更事件后，Spring事件广播器通知监听该事件（EnvironmentChangeEvent）的消费者进行相关逻辑处理。</p>
+<pre><code>public class SimpleApplicationEventMulticaster extends AbstractApplicationEventMulticaster {
+    	@Override
+	public void multicastEvent(ApplicationEvent event) {
+		multicastEvent(event, resolveDefaultEventType(event));
+	}
+
+	@Override
+	public void multicastEvent(final ApplicationEvent event, @Nullable ResolvableType eventType) {
+		ResolvableType type = (eventType != null ? eventType : resolveDefaultEventType(event));
+		Executor executor = getTaskExecutor();
+		for (ApplicationListener&lt;?&gt; listener : getApplicationListeners(event, type)) {
+			if (executor != null) {
+				executor.execute(() -&gt; invokeListener(listener, event));
+			}
+			else {
+				invokeListener(listener, event);
+			}
+		}
+	}
+}
+</code></pre>
+<p>最终由ConfigurationPropertiesRebinder监听到该事件并重新绑定Bean配置属性。</p>
+<pre><code>@Component
+@ManagedResource
+public class ConfigurationPropertiesRebinder
+		implements ApplicationContextAware, ApplicationListener&lt;EnvironmentChangeEvent&gt; {
+            	@Override
+	public void onApplicationEvent(EnvironmentChangeEvent event) {
+		if (this.applicationContext.equals(event.getSource())
+				// Backwards compatible
+				|| event.getKeys().equals(event.getSource())) {
+			rebind();
+		}
+	}
+}
+</code></pre>
+<p>在设置初始化连接数时，Druid数据源已经初始化的情况下抛出UnsupportedOperationException异常信息</p>
+<pre><code>public abstract class DruidAbstractDataSource extends WrapperAdapter implements DruidAbstractDataSourceMBean, DataSource, DataSourceProxy, Serializable {
+        public void setInitialSize(int initialSize) {
+        if (this.initialSize == initialSize) {
+            return;
+        }
+
+        if (inited) {
+            throw new UnsupportedOperationException();
+        }
+
+        this.initialSize = initialSize;
+    }
+}
+</code></pre>
+<p>然后由ConfigurationPropertiesRebinder捕获到该异常信息，并将该异常信息存在errors对象</p>
+<pre><code>public class ConfigurationPropertiesRebinder
+		implements ApplicationContextAware, ApplicationListener&lt;EnvironmentChangeEvent&gt; {
+            	@ManagedOperation
+	public boolean rebind(String name) {
+		if (!this.beans.getBeanNames().contains(name)) {
+			return false;
+		}
+		if (this.applicationContext != null) {
+			try {
+				Object bean = this.applicationContext.getBean(name);
+				if (AopUtils.isAopProxy(bean)) {
+					bean = ProxyUtils.getTargetObject(bean);
+				}
+				if (bean != null) {
+					this.applicationContext.getAutowireCapableBeanFactory()
+							.destroyBean(bean);
+					this.applicationContext.getAutowireCapableBeanFactory()
+							.initializeBean(bean, name);
+					return true;
+				}
+			}
+			catch (RuntimeException e) {
+				this.errors.put(name, e);
+				throw e;
+			}
+			catch (Exception e) {
+				this.errors.put(name, e);
+				throw new IllegalStateException(&quot;Cannot rebind to &quot; + name, e);
+			}
+		}
+		return false;
+	}
+}
+</code></pre>
+<p>在进行节点探活的时候检测到该异常信息，导致健康检查失败，最终触发运维平台重启应用</p>
+<pre><code>public class RefreshScopeHealthIndicator extends AbstractHealthIndicator {
+    	protected void doHealthCheck(Builder builder) throws Exception {
+		RefreshScope refreshScope = this.scope.getIfAvailable();
+		if (refreshScope != null) {
+			Map&lt;String, Exception&gt; errors = new HashMap&lt;&gt;(refreshScope.getErrors());
+			errors.putAll(this.rebinder.getErrors());
+			if (errors.isEmpty()) {
+				builder.up();
+			}
+			else {
+				builder.down();
+				if (errors.size() == 1) {
+					builder.withException(errors.values().iterator().next());
+				}
+				else {
+					for (String name : errors.keySet()) {
+						builder.withDetail(name, errors.get(name));
+					}
+				}
+			}
+		}
+	}
+}
+
+</code></pre>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://oathhhhhhh.github.io/tag/z0koTZe1aH/" class="tag">
+                    Druid
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://oathhhhhhh.github.io/post/elasticsearch-ying-she/">
+                  <h3 class="post-title">
+                    Elasticsearch 映射
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+
+
+  </body>
+</html>

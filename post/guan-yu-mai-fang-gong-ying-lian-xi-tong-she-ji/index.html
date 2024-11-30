@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>关于中台物流系统设计的简单思考 | Lipe</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://oathhhhhhh.github.io/favicon.ico?v=1732951901189">
+<link rel="stylesheet" href="https://oathhhhhhh.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="一、总体设计
+在整个快递物流体系中，B2C供应链大致分为四方角色，即商家、平台、物流供应商、客户。而他们之间的关系大致如下图：
+
+平台在整个体系中处于商家、客户与物流供应商之间，起到物流中台作用。
+在中台架构中，我们往往把一个系统划分为基础..." />
+    <meta name="keywords" content="" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://oathhhhhhh.github.io">
+        <img src="https://oathhhhhhh.github.io/images/avatar.png?v=1732951901189" class="site-logo">
+        <h1 class="site-title">Lipe</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="https://oathhhhhhh.github.io/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="https://oathhhhhhh.github.io/post/test" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      大道至简，知易行难
+    </div>
+    <div class="site-footer">
+      Produced By Lipe | <a class="rss" href="https://oathhhhhhh.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">关于中台物流系统设计的简单思考</h2>
+            <div class="post-date">2024-11-24</div>
+            
+            <div class="post-content" v-pre>
+              <h1 id="一-总体设计">一、总体设计</h1>
+<p>在整个快递物流体系中，B2C供应链大致分为四方角色，即商家、平台、物流供应商、客户。而他们之间的关系大致如下图：<br>
+<img src="https://oathhhhhhh.github.io/post-images/1732950119176.png" alt="" loading="lazy"><br>
+平台在整个体系中处于商家、客户与物流供应商之间，起到物流中台作用。</p>
+<p>在中台架构中，我们往往把一个系统划分为基础能力层和产品服务层。其中，基础能力层聚焦于稳定收敛的业务模型和基础服务本身，不会随着业务和前台产品的调整发生变化，平台产品层则专注于通过流程编排类的技术手段，将基础能力构建成业务的解决方案，解决共性和个性化的问题。基于上面所说的中台架构思想，我们把物流系统划分位物流基础能力层和物流产品服务层。<br>
+<img src="https://oathhhhhhh.github.io/post-images/1732951790393.png" alt="" loading="lazy"></p>
+
+            </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://oathhhhhhh.github.io/post/dao-chu-fu-wu-pin-fan-gc-wen-ti-pai-cha-yu-fen-xi/">
+                  <h3 class="post-title">
+                    一次导出服务频繁GC问题排查与分析
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+
+
+  </body>
+</html>

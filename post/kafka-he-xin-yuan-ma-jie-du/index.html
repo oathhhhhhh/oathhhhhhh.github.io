@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>Elasticsearch 映射 | Lipe</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://oathhhhhhh.github.io/favicon.ico?v=1732951901189">
+<link rel="stylesheet" href="https://oathhhhhhh.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="
+Elasticsearch 映射
+在 Elasticsearch 中，Mapping（映射），用来定义一个文档以及其所包含的字段如何被存储和索引，可以在映射中事先定义字段的数据类型、字段的权重、分词器等属性，就如同在关系型数据库中创建数据..." />
+    <meta name="keywords" content="" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://oathhhhhhh.github.io">
+        <img src="https://oathhhhhhh.github.io/images/avatar.png?v=1732951901189" class="site-logo">
+        <h1 class="site-title">Lipe</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="https://oathhhhhhh.github.io/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="https://oathhhhhhh.github.io/post/test" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      大道至简，知易行难
+    </div>
+    <div class="site-footer">
+      Produced By Lipe | <a class="rss" href="https://oathhhhhhh.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">Elasticsearch 映射</h2>
+            <div class="post-date">2024-10-01</div>
+            
+            <div class="post-content" v-pre>
+              <!-- more -->
+<h3 id="elasticsearch-映射">Elasticsearch 映射</h3>
+<p>在 Elasticsearch 中，<strong>Mapping</strong>（映射），用来定义一个文档以及其所包含的字段如何被存储和索引，可以在映射中事先定义字段的数据类型、字段的权重、分词器等属性，就如同在关系型数据库中创建数据表时会设置字段的类型。</p>
+<p>Mapping 会把 JSON 文档映射成 Lucene 所需要的扁平格式</p>
+<p>一个 Mapping 属于一个索引的 Type</p>
+<ul>
+<li>每个文档都属于一个 Type</li>
+<li>一个 Type 有一个 Mapping 定义</li>
+<li>7.0 开始，不需要在 Mapping 定义中指定 type 信息</li>
+</ul>
+<p>每个 document 都是 field 的集合，每个 field 都有自己的数据类型。映射数据时，可以创建一个 mapping，其中包含与 document 相关的 field 列表。映射定义还包括元数据 field，例如 _source ，它自定义如何处理 document 的关联元数据。</p>
+<h3 id="映射方式">映射方式</h3>
+<p>在 Elasticsearch 中，映射可分为静态映射和动态映射。在关系型数据库中写入数据之前首先要建表，在建表语句中声明字段的属性，在 Elasticsearch 中，则不必如此，Elasticsearch 最重要的功能之一就是让你尽可能快地开始探索数据，文档写入 Elasticsearch 中，它会根据字段的类型自动识别，这种机制称为动态映射，而静态映射则是写入数据之前对字段的属性进行手工设置。</p>
+<h3 id="静态映射">静态映射</h3>
+<p>ES 官方将静态映射称为显式映射（Explicit mapping）。静态映射是在创建索引时显示的指定索引映射。静态映射和 SQL 中在建表语句中指定字段属性类似。相比动态映射，通过静态映射可以添加更详细、更精准的配置信息。例如：</p>
+<ul>
+<li>哪些字符串字段应被视为全文字段。</li>
+<li>哪些字段包含数字、日期或地理位置。</li>
+<li>日期值的格式。</li>
+<li>用于控制动态添加字段的自定义规则。</li>
+</ul>
+<p>【示例】创建索引时，显示指定 mapping</p>
+<pre><code>PUT /my-index-000001
+{
+  &quot;mappings&quot;: {
+    &quot;properties&quot;: {
+      &quot;age&quot;:    { &quot;type&quot;: &quot;integer&quot; },
+      &quot;email&quot;:  { &quot;type&quot;: &quot;keyword&quot;  },
+      &quot;name&quot;:   { &quot;type&quot;: &quot;text&quot;  }
+    }
+  }
+}
+</code></pre>
+<p>【示例】在已存在的索引中，指定一个 field 的属性</p>
+<pre><code>PUT /my-index-000001/_mapping
+{
+  &quot;properties&quot;: {
+    &quot;employee-id&quot;: {
+      &quot;type&quot;: &quot;keyword&quot;,
+      &quot;index&quot;: false
+    }
+  }
+}
+</code></pre>
+<p>【示例】查看 mapping</p>
+<pre><code>GET /my-index-000001/_mapping
+</code></pre>
+<p>【示例】查看指定 field 的 mapping</p>
+<pre><code>GET /my-index-000001/_mapping/field/employee-id
+</code></pre>
+<h3 id="动态映射">动态映射</h3>
+<p>动态映射机制，允许用户不手动定义映射，Elasticsearch 会自动识别字段类型。在实际项目中，如果遇到的业务在导入数据之前不确定有哪些字段，也不清楚字段的类型是什么，使用动态映射非常合适。当 Elasticsearch 在文档中碰到一个以前没见过的字段时，它会利用动态映射来决定该字段的类型，并自动把该字段添加到映射中。</p>
+<p>示例：创建一个名为 data 的索引、其 mapping 类型为 _doc，并且有一个类型为 long 的字段 count。</p>
+<pre><code>PUT data/_doc/1
+{ &quot;count&quot;: 5 }
+</code></pre>
+<h3 id="动态字段映射">动态字段映射</h3>
+<p>动态字段映射（Dynamic field mappings）是用于管理动态字段检测的规则。当 Elasticsearch 在文档中检测到新字段时，默认情况下会动态将该字段添加到类型映射中。</p>
+<p>在 mapping 中可以通过将 dynamic 参数设置为 true 或 runtime 来开启动态映射。</p>
+<p>dynamic 不同设置的作用：</p>
+
+            </div>
+            
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+
+
+  </body>
+</html>

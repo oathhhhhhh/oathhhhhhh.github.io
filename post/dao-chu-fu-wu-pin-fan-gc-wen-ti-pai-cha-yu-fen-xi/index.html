@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>一次导出服务频繁GC问题排查与分析 | Lipe</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://oathhhhhhh.github.io/favicon.ico?v=1732951901189">
+<link rel="stylesheet" href="https://oathhhhhhh.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="一、问题排查流程
+生产环境某业务线导出服务在11月8日下午出现了频繁的gc
+
+随即通过grafana简单看了下，是Eden区内存满了触发minor gc
+
+然后分析dump文件发现前十大对象都是ExcelWriter，而该对象99%内存占用..." />
+    <meta name="keywords" content="" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://oathhhhhhh.github.io">
+        <img src="https://oathhhhhhh.github.io/images/avatar.png?v=1732951901189" class="site-logo">
+        <h1 class="site-title">Lipe</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="https://oathhhhhhh.github.io/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="https://oathhhhhhh.github.io/post/test" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      大道至简，知易行难
+    </div>
+    <div class="site-footer">
+      Produced By Lipe | <a class="rss" href="https://oathhhhhhh.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">一次导出服务频繁GC问题排查与分析</h2>
+            <div class="post-date">2024-11-13</div>
+            
+            <div class="post-content" v-pre>
+              <h3 id="一-问题排查流程">一、问题排查流程</h3>
+<p>生产环境某业务线导出服务在11月8日下午出现了频繁的gc<br>
+<img src="https://oathhhhhhh.github.io/post-images/1731499218175.png" alt="" loading="lazy"><br>
+随即通过grafana简单看了下，是Eden区内存满了触发minor gc<br>
+<img src="https://oathhhhhhh.github.io/post-images/1731499310812.png" alt="" loading="lazy"><br>
+然后分析dump文件发现前十大对象都是ExcelWriter，而该对象99%内存占用都是ByteArrayOutputStream。<br>
+<img src="https://oathhhhhhh.github.io/post-images/1731499370692.png" alt="" loading="lazy"><br>
+然后分析导出代码，发现代码中就是使用ByteArrayOutputStream承接导出数据并上传OSS的。<br>
+<img src="https://oathhhhhhh.github.io/post-images/1731499479905.png" alt="" loading="lazy"><br>
+ByteArrayOutputStream和FileOutputStream区别如下。由此不难看出，使用ByteArrayOutputStream承接导出文件，会导致系统大量内存用来存Excel文件流，从而导致导出服务内存利用率低，并且容易GC。</p>
+<pre><code>ByteArrayOutputStream：由于它是将数据暂存在内存中，因此其性能优于写文件的操作，尤其是在小数据量或者需要频繁读写的情况下，速度较快。
+内存限制：它使用的是 JVM 内存，因此如果数据量过大，可能会导致 OutOfMemoryError。如果你要处理大文件或大量数据，内存可能成为瓶颈。
+
+FileOutputStream：将数据写入磁盘时，相较于内存操作来说，速度较慢，尤其是在文件系统较慢的情况下。磁盘的读写速度远低于内存，因此当大量数据需要写入文件时，可能会受到性能的限制。
+磁盘限制：FileOutputStream 的主要优势是它不受内存限制，可以写入较大的数据集
+</code></pre>
+<h3 id="二-easyexcel源码分析">二、EasyExcel源码分析</h3>
+<p>通过上面的问题排查，可能有同学会有疑问。如果使用FileOutputStream，在循环导出过程中，还没有调用ExcelWriter finish方法前，数据不是照样存在内存中么？接下来我将对EasyExcel导出原理进行分析。</p>
+<p>EasyExcel对我们开发者来说，主要分为三步：</p>
+<pre><code>1、通过构造链初始化ExcelWriter对象，构造期间可以注册各种处理器
+2、往工作薄循环填充数据
+3、导出完成，输出导出结果至目标对象
+</code></pre>
+<p>接下来我会针对者三步的源码进行分析</p>
+<h3 id="21-构建excelwriter">2.1 构建ExcelWriter</h3>
+<p>构建ExcelWriter前，会先创建其构造器对象ExcelWriterBuilder，获取ExcelWriterBuilder有3个方法：</p>
+<pre><code>1、指定OutputSreram流的ExcelWriter。问题服务现在用的方法就是这个。占用JVM内存大
+2、指定输出文件的ExcelWriter。建议导出场景使用这个，占用JVM内存小。
+3、指定输出文件路径的ExcelWriter。和方法二使用场景类似
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://oathhhhhhh.github.io/post-images/1731499782557.png" alt="" loading="lazy"></figure>
+<p>当我们使用方法二进行构造时，EasyExcel会帮我们使用对应的FileOutputStream去承接对应的Excel文件流，并输出到对应文件。<br>
+最后就是触发一系列的链式构造、初始化导出对象，这个不重要，我们忽略这个。<br>
+<img src="https://oathhhhhhh.github.io/post-images/1731499843580.png" alt="" loading="lazy"></p>
+<h3 id="22-往工作薄循环填充数据">2.2 往工作薄循环填充数据</h3>
+<p>循环查询填充数据的过程就是循环创建Excel Row的过程，所以我们主要看看org.apache.poi.xssf.streaming.SXSSFSheet#createRow方法。<br>
+每次创建好SXSSFRow后，会将对应的Row对象存放在_rows map中。并且在存放完成后，会判断一下当前的_rows大小是否大于500。若大于500，则执行flushRows。接下来我们看看flushRows方法的实现。<br>
+<img src="https://oathhhhhhh.github.io/post-images/1731499891183.png" alt="" loading="lazy"><br>
+flushRows方法本质上是循环调用flushOneRow，所以我们这里看看flushOneRow即可。<br>
+flushOneRow就是循环存储Excel Row对象的map。将Row 对象存储到截图中所指的xml文件后，就将该Row对象从map中移除掉。<br>
+由此我们的问题也就得到了答案，无论我们导出多少数据，在导出过程中，每500条数据就会执行一次刷盘。<br>
+<img src="https://oathhhhhhh.github.io/post-images/1731499931693.png" alt="" loading="lazy"></p>
+<h3 id="23-输出结果至目标对象">2.3 输出结果至目标对象</h3>
+<p>最后通过com.alibaba.excel.context.WriteContextImpl#finish将数据输出至我们指定的临时文件<br>
+<img src="https://oathhhhhhh.github.io/post-images/1731499984310.png" alt="" loading="lazy"><br>
+通过上面的导出流程分析，我们在整个导出过程中，无论导出文件有多大，内存占用都可以控制在10兆内。</p>
+
+            </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://oathhhhhhh.github.io/post/yi-ci-yin-xiu-gai-chu-shi-hua-lian-jie-dao-zhi-ying-yong-chong-qi-de-yuan-yin-fen-xi/">
+                  <h3 class="post-title">
+                    一次因修改Druid配置导致应用重启问题记录
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+
+
+  </body>
+</html>
